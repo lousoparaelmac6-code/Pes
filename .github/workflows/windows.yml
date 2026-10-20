@@ -28,6 +28,18 @@ jobs:
           $file = "release-win/PES-Windows-Setup.exe"
           if (!(Test-Path $file)) { throw "No se generó el instalador esperado: $file" }
           if ((Get-Item $file).Length -lt 1000000) { throw "El instalador es demasiado pequeño; se detiene la publicación." }
+      - name: Smoke-test installer on Windows
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $installer = (Resolve-Path "release-win/PES-Windows-Setup.exe").Path
+          $process = Start-Process -FilePath $installer -ArgumentList @("/S") -PassThru -Wait
+          if ($process.ExitCode -ne 0) { throw "El instalador terminó con código $($process.ExitCode)." }
+          $installedExe = Join-Path $env:LOCALAPPDATA "Programs/PES/PES.exe"
+          if (!(Test-Path $installedExe)) { throw "El instalador se ejecutó pero no dejó PES.exe en la ruta esperada: $installedExe" }
+          $asar = Join-Path $env:LOCALAPPDATA "Programs/PES/resources/app.asar"
+          if (!(Test-Path $asar)) { throw "La instalación no contiene resources/app.asar." }
+          Write-Host "Smoke test OK: instalador ejecutado e instalación verificada."
       - name: Generate update manifest
         shell: pwsh
         run: node scripts/make-manifest.mjs windows "$env:PES_VERSION" "release-win/PES-Windows-Setup.exe" "$env:RELEASE_REPO" "desktop-v$env:PES_VERSION"
