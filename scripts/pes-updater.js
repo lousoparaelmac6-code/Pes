@@ -36,7 +36,7 @@
    if(!available){show("PES está actualizado.\nVersión instalada: "+installed);return;}
    show("Hay una versión nueva de PES para "+(isAndroid?"Android":"Windows")+".\nInstalada: "+installed+"\nDisponible: "+version+"\n\nSe conservarán los datos. No desinstales la aplicación.",[{
     label:"Descargar e instalar",run:async()=>{
-     if(isAndroid){const plugin=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.PESUpdater;
+     if(isAndroid){const plugin=window.PESNativeUpdater;
       if(!plugin||typeof plugin.installApk!=="function")throw new Error("No está disponible el instalador nativo; hace falta una compilación Android actualizada.");
       await plugin.installApk({url:latest.url,sha256:latest.sha256});show("Descarga preparada. Seguí las indicaciones del instalador de Android para actualizar PES.");
      }else await window.pesDesktop.downloadAndInstall({url:latest.url,sha256:latest.sha256});
