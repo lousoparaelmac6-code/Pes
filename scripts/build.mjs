@@ -6,6 +6,10 @@ const sourceHtml=path.join(root,"GyJ_PES_PLANTELES_V3_CORREGIDO (2) (1).html");
 const sourceJson=path.join(root,"GyJ_PES_Historial_Backup_2026-10-20.json");
 const dist=path.join(root,"dist");
 const version=process.env.PES_VERSION||"1.0.0";
+const packagePath=path.join(root,"package.json");
+const packageJson=JSON.parse(await fs.readFile(packagePath,"utf8"));
+packageJson.version=version;
+await fs.writeFile(packagePath,JSON.stringify(packageJson,null,2)+"\\n","utf8");
 await fs.access(sourceHtml); await fs.access(sourceJson);
 await fs.rm(dist,{recursive:true,force:true}); await fs.mkdir(dist,{recursive:true});
 let html=await fs.readFile(sourceHtml,"utf8");
@@ -16,5 +20,6 @@ html+="\n<script>window.PES_APP_VERSION="+JSON.stringify(version)+";</script>\n<
 await fs.writeFile(path.join(dist,"index.html"),html,"utf8");
 await fs.copyFile(sourceJson,path.join(dist,path.basename(sourceJson)));
 await fs.copyFile(path.join(root,"scripts","pes-updater.js"),path.join(dist,"pes-updater.js"));
+await build({entryPoints:["scripts/pes-updater-bridge.js"],bundle:true,platform:"browser",format:"iife",target:["es2020"],outfile:path.join(dist,"pes-updater-bridge.js"),logLevel:"info"});
 await build({entryPoints:["node_modules/@supabase/supabase-js/dist/module/index.js"],bundle:true,platform:"browser",format:"iife",globalName:"supabase",target:["es2020"],outfile:path.join(dist,"supabase.bundle.js"),logLevel:"info"});
 console.log("PES web bundle ready:",dist,"version",version);
