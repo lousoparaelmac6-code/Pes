@@ -1,0 +1,4 @@
+{
+  "appId":"com.gyj.pes","appName":"PES","webDir":"dist","bundledWebRuntime":false,
+  "server":{"androidScheme":"https"}
+}

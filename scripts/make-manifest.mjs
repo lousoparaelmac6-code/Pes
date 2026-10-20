@@ -1,0 +1,12 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import crypto from "node:crypto";
+const [platform,version,filePath,repo,tag]=process.argv.slice(2);
+if(!platform||!version||!filePath||!repo||!tag) throw new Error("Faltan argumentos para crear el manifiesto.");
+const file=await fs.readFile(filePath),assetName=path.basename(filePath);
+const sha256=crypto.createHash("sha256").update(file).digest("hex");
+const platformName=platform==="android"?"Android":"Windows";
+const manifest={app:"PES",platform,version,assetName,url:"https://github.com/"+repo+"/releases/download/"+tag+"/"+assetName,sha256,size:file.length,generatedAt:new Date().toISOString()};
+const out=path.join(path.dirname(filePath),"PES-"+platformName+"-manifest.json");
+await fs.writeFile(out,JSON.stringify(manifest,null,2)+"\n","utf8");
+console.log("Manifest generated:",out,"size:",file.length,"sha256:",sha256);

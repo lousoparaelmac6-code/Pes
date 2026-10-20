@@ -1,0 +1,91 @@
+name: Build PES Android APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    env:
+      PES_VERSION: 1.0.${{ github.run_number }}
+      PES_VERSION_CODE: ${{ github.run_number }}
+      RELEASE_REPO: lousoparaelmac6-code/pes-releases
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Checkout PES
+        uses: actions/checkout@v4
+      - name: Verify stable Android signing key
+        shell: bash
+        run: |
+          missing=()
+          [ -n "$ANDROID_KEYSTORE_BASE64" ] || missing+=("ANDROID_KEYSTORE_BASE64")
+          [ -n "$ANDROID_KEYSTORE_PASSWORD" ] || missing+=("ANDROID_KEYSTORE_PASSWORD")
+          [ -n "$ANDROID_KEY_ALIAS" ] || missing+=("ANDROID_KEY_ALIAS")
+          [ -n "$ANDROID_KEY_PASSWORD" ] || missing+=("ANDROID_KEY_PASSWORD")
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::No se publicará un APK sin firma estable. Faltan GitHub Secrets: ${missing[*]}. Sin la misma clave, Android rechaza las actualizaciones."
+            exit 1
+          fi
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install dependencies
+        run: npm install
+      - name: Build local web assets
+        run: npm run build:web
+      - name: Add Android platform
+        run: npx cap add android
+      - name: Sync Capacitor
+        run: npx cap sync android
+      - name: Configure Android updater and stable signing
+        shell: bash
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          test -s android/app/release.keystore
+          node scripts/patch-android.mjs
+      - name: Build signed APK
+        working-directory: android
+        run: ./gradlew assembleRelease
+      - name: Verify APK output
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK" || { echo "::error::No se generó el APK release esperado."; exit 1; }
+          mkdir -p release-android
+          cp "$APK" release-android/PES-Android.apk
+      - name: Generate update manifest
+        run: node scripts/make-manifest.mjs android "$PES_VERSION" "release-android/PES-Android.apk" "$RELEASE_REPO" "apk-v$PES_VERSION"
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PES-Android-APK
+          path: |
+            release-android/PES-Android.apk
+            release-android/PES-Android-manifest.json
+          if-no-files-found: error
+      - name: Publish public Android release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Falta RELEASES_TOKEN con permiso Contents: write sobre lousoparaelmac6-code/pes-releases."
+            exit 1
+          fi
+          TAG="apk-v$PES_VERSION"
+          if gh release view "$TAG" --repo "$RELEASE_REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-android/PES-Android.apk release-android/PES-Android-manifest.json --repo "$RELEASE_REPO" --clobber
+          else
+            gh release create "$TAG" release-android/PES-Android.apk release-android/PES-Android-manifest.json --repo "$RELEASE_REPO" --target main --title "PES para Android v$PES_VERSION" --notes "APK oficial de PES para Android. La actualización requiere firma compatible y conserva los datos."
+          fi

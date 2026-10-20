@@ -1,0 +1,55 @@
+name: Build PES Windows
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      PES_VERSION: 1.0.${{ github.run_number }}
+      RELEASE_REPO: lousoparaelmac6-code/pes-releases
+    steps:
+      - name: Checkout PES
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build Windows installer
+        run: npm run build:windows
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          $file = "release-win/PES-Windows-Setup.exe"
+          if (!(Test-Path $file)) { throw "No se generó el instalador esperado: $file" }
+          if ((Get-Item $file).Length -lt 1000000) { throw "El instalador es demasiado pequeño; se detiene la publicación." }
+      - name: Generate update manifest
+        shell: pwsh
+        run: node scripts/make-manifest.mjs windows "$env:PES_VERSION" "release-win/PES-Windows-Setup.exe" "$env:RELEASE_REPO" "desktop-v$env:PES_VERSION"
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PES-Windows-Setup
+          path: |
+            release-win/PES-Windows-Setup.exe
+            release-win/PES-Windows-manifest.json
+          if-no-files-found: error
+      - name: Publish public Windows release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { throw "Falta RELEASES_TOKEN con permiso Contents: write sobre lousoparaelmac6-code/pes-releases." }
+          $tag = "desktop-v$env:PES_VERSION"
+          $assets = @("release-win/PES-Windows-Setup.exe", "release-win/PES-Windows-manifest.json")
+          gh release view $tag --repo $env:RELEASE_REPO *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $assets --repo $env:RELEASE_REPO --clobber
+          } else {
+            gh release create $tag $assets --repo $env:RELEASE_REPO --target main --title "PES para Windows v$env:PES_VERSION" --notes "Instalador oficial de PES para Windows. La actualización conserva los datos de la aplicación."
+          }
