@@ -42,8 +42,12 @@ window.addEventListener('gyj:local-save',()=>{cloudQueueLocalSave();});
 function cloudShouldApplyRemote(updatedAt){return !pendingWrite&&!writeInFlight;}
 `;
  html=html.slice(0,cs)+cloud+html.slice(ce);
- once("}catch(e){window.GYJ_CLOUD_ERROR=String(e?.message||e);try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo leer la nube en este momento',window.GYJ_CLOUD_ERROR);}catch(_){} }\n try{localStorage.setItem('gyj_pes_html_v3_ESTADISTICAS_XLSX_EXACTAS',JSON.stringify(state));",
-      "}catch(e){window.GYJ_CLOUD_ERROR=String(e?.message||e);initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo leer la nube. Se conserva la última copia confirmada y se reintentará inmediatamente.',window.GYJ_CLOUD_ERROR);}catch(_){}cloudScheduleInitRetry();return;}\n try{localStorage.setItem('gyj_pes_html_v3_ESTADISTICAS_XLSX_EXACTAS',JSON.stringify(state));","cloud init retry");
+ const initStart=html.indexOf("async function cloudInit");
+ const readErrorAt=html.indexOf("No se pudo leer la nube en este momento",initStart);
+ const catchStart=html.lastIndexOf("}catch(e){",readErrorAt);
+ const nextLocalWrite=html.indexOf("try{localStorage.setItem('gyj_pes_html_v3_ESTADISTICAS_XLSX_EXACTAS'",readErrorAt);
+ if(initStart<0||readErrorAt<0||catchStart<0||nextLocalWrite<0)throw new Error("PES patch: cloud read catch boundaries not found");
+ html=html.slice(0,catchStart)+"}catch(e){window.GYJ_CLOUD_ERROR=String(e?.message||e);initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo leer la nube. Se conserva la última copia confirmada y se reintentará inmediatamente.',window.GYJ_CLOUD_ERROR);}catch(_){}cloudScheduleInitRetry();return;}\\n "+html.slice(nextLocalWrite);
  once("if(!window.supabase?.createClient){window.GYJ_CLOUD_ERROR='SDK Supabase no disponible';initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','Supabase no está disponible','La aplicación continúa con respaldo local.');}catch(_){}return;}",
        "if(!window.supabase?.createClient){window.GYJ_CLOUD_ERROR='SDK Supabase no disponible';initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','Supabase no está disponible','La aplicación continúa con respaldo local.');}catch(_){}cloudScheduleInitRetry();return;}","SDK retry");
  once("try{client=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){window.GYJ_CLOUD_ERROR=String(e?.message||e);initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo crear el cliente Supabase',window.GYJ_CLOUD_ERROR);}catch(_){}return;}",
