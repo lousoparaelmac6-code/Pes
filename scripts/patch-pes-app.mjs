@@ -51,7 +51,7 @@ function cloudShouldApplyRemote(updatedAt){return !pendingWrite&&!writeInFlight;
  once("if(data?.estado?.state&&cloudShouldApplyRemote(data.updated_at)){applySnapshot(data.estado);normalizePlayersClean();remoteLoaded=true;try{localStorage.setItem(CLOUD_REMOTE_KEY,data.updated_at||'');}catch(_){} }",
       "if(data?.estado?.state){const snap=data.estado;if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'',!!pendingWrite);}","confirmed remote");
  once("if(cloudShouldApplyRemote(data.updated_at)){applySnapshot({state:data.estado,localStorage:{}});normalizePlayersClean();remoteLoaded=true;}",
-      "const snap={state:data.estado,localStorage:{}};if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'');","legacy remote");
+      "const snap={state:data.estado,localStorage:{}};if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'',!!pendingWrite);","legacy remote");
  once("else{ensureCanonicalActivePlayers();normalizePlayersClean();}",
       "else{ensureCanonicalActivePlayers();normalizePlayersClean();remoteBaseSnapshot=appSnapshot();}","initial baseline");
  once("applySnapshot(snap);normalizePlayersClean();try{localStorage.setItem(CLOUD_REMOTE_KEY,updatedAt);}catch(_){}cloudRenderAfterRemote();",
