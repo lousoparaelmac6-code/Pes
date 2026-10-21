@@ -3,16 +3,13 @@
  const API="https://api.github.com/repos/lousoparaelmac6-code/pes-releases/releases?per_page=100";
  const currentVersion=String(window.PES_APP_VERSION||"1.0.0"),cap=window.Capacitor;
  const isAndroid=!!(cap&&typeof cap.getPlatform==="function"&&cap.getPlatform()==="android"),isDesktop=!!window.pesDesktop;
- let progressBox=null,progressText=null,progressBar=null,progressDetails=null,progressStarted=0;
+ let progressBox=null,progressText=null,progressBar=null,progressDetails=null,progressStarted=0,lastProgress={stage:"Conectando con el servidor…",received:0,total:0,percent:-1};
  function parts(v){return String(v||"0").replace(/^v/,"").split(/[.+-]/).map(n=>parseInt(n,10)||0);}
  function compare(a,b){const aa=parts(a),bb=parts(b);for(let i=0;i<Math.max(aa.length,bb.length);i++){const d=(aa[i]||0)-(bb[i]||0);if(d)return d>0?1:-1;}return 0;}
  async function getJson(url){const r=await fetch(url,{headers:{Accept:"application/vnd.github+json"}});if(!r.ok)throw new Error("GitHub respondió HTTP "+r.status+".");return r.json();}
  async function latestAndroidRelease(){
-  const releases=await getJson(API),list=releases.filter(r=>!r.draft&&!r.prerelease&&/^apk-v\d+\.\d+\.\d+$/.test(r.tag_name||""));
-  list.sort((a,b)=>compare(b.tag_name.replace(/^apk-v/,""),a.tag_name.replace(/^apk-v/,"")));
-  for(const release of list){const asset=(release.assets||[]).find(a=>a.name==="PES-Android-manifest.json");if(!asset)continue;
-   const manifest=await getJson(asset.browser_download_url);if(manifest.platform==="android"&&manifest.version&&manifest.url&&manifest.sha256)return manifest;
-  }return null;
+  const native=window.PESNativeUpdater;if(!native||typeof native.getLatestAndroidManifest!=="function")throw new Error("Esta versión de Android no incluye la consulta nativa de actualizaciones. Instalá una versión actualizada de PES.");
+  const manifest=await native.getLatestAndroidManifest();if(!manifest||manifest.platform!=="android"||!manifest.version||!manifest.url||!manifest.sha256)throw new Error("El servidor no devolvió un manifiesto Android válido con URL y SHA-256.");return manifest;
  }
  function ensureUi(){
   if(!document.getElementById("pes-update-launcher")){
@@ -53,14 +50,15 @@
   document.body.appendChild(box);progressBox=box;progressText=title;progressBar=fill;progressDetails=details;progressStarted=Date.now();
  }
  function updateProgress(p){
-  if(!progressBox||!progressBox.isConnected)return;
-  p=p||{};const stage=String(p.stage||"Descargando actualización…");progressText.textContent=stage;
+  p=p||{};lastProgress=p;if(!progressBox||!progressBox.isConnected)return;
+  const stage=String(p.stage||"Descargando actualización…");progressText.textContent=stage;
   const received=Number(p.received||0),total=Number(p.total||0),percent=Number.isFinite(Number(p.percent))?Number(p.percent):-1;
   if(percent>=0){progressBar.style.width=Math.max(0,Math.min(100,percent))+"%";progressBar.style.animation="none";progressDetails.textContent=Math.round(percent)+"% · "+bytes(received)+" de "+bytes(total)+" · Restante: "+remaining(received,total);}
   else{progressBar.style.width="35%";progressBar.style.animation="pes-progress-indeterminate 1.1s ease-in-out infinite alternate";progressDetails.textContent=bytes(received)+" recibidos · Tamaño total no informado · Restante: no disponible";}
   if(stage==="Verificando archivo…")progressDetails.textContent="Descarga recibida: "+bytes(received)+". Comprobando integridad SHA-256…";
   if(stage==="Preparando instalación…")progressDetails.textContent="Archivo verificado. Preparando el instalador…";
   if(stage==="Descarga completada")progressDetails.textContent="Descarga completa. "+bytes(received)+" recibidos.";
+  if(stage==="Descarga verificada"){progressBar.style.width="100%";progressBar.style.animation="none";progressDetails.textContent="Archivo íntegro (SHA-256 correcto) · "+bytes(received)+(total>0?" de "+bytes(total):" recibidos")+". Android va a abrir el instalador.";}
  }
  async function startDownload(latest){
   beginProgress();
@@ -70,14 +68,13 @@
    try{
     if(typeof plugin.addListener==="function")handle=await plugin.addListener("downloadProgress",p=>updateProgress(p));
     updateProgress({stage:"Conectando con el servidor…",received:0,total:0,percent:-1});
-    await plugin.installApk({url:latest.url,sha256:latest.sha256});
-    updateProgress({stage:"Preparando instalación…",received:1,total:1,percent:100});
+    await plugin.installApk({url:latest.url,sha256:latest.sha256,size:Number(latest.size||0)});
+    updateProgress({stage:"Descarga verificada",received:Number(lastProgress.received||0),total:Number(lastProgress.total||0),percent:100});
     if(progressBox&&progressBox.isConnected){progressText.textContent="Descarga verificada";progressDetails.textContent="Android va a abrir el instalador. Confirmá la actualización para conservar los datos.";const b=document.createElement("button");b.textContent="Listo";b.addEventListener("click",()=>progressBox&&progressBox.remove());progressBox.appendChild(b);}
    }finally{if(handle&&typeof handle.remove==="function")await handle.remove();}
   }else{
-   if(typeof window.pesDesktop.onDownloadProgress==="function")window.pesDesktop.onDownloadProgress(p=>updateProgress(p));
-   await window.pesDesktop.downloadAndInstall({url:latest.url,sha256:latest.sha256});
-   updateProgress({stage:"Descarga completada",received:1,total:1,percent:100});
+   let unsubscribe=null;if(typeof window.pesDesktop.onDownloadProgress==="function")unsubscribe=window.pesDesktop.onDownloadProgress(p=>updateProgress(p));
+   try{await window.pesDesktop.downloadAndInstall({url:latest.url,sha256:latest.sha256,size:Number(latest.size||0)});updateProgress({stage:"Descarga completada",received:Number(lastProgress.received||0),total:Number(lastProgress.total||lastProgress.received||0),percent:100});}finally{if(typeof unsubscribe==="function")unsubscribe();}
   }
  }
  async function runCheck(silent){
