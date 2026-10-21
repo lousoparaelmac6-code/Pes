@@ -55,5 +55,6 @@
   }catch(e){if(!silent)show("No se pudo comprobar o descargar la actualización.\n"+String(e.message||e)+"\n\nPodés seguir usando esta versión e intentar nuevamente.");else console.warn("PES update check failed:",e);}
   finally{if(button){button.disabled=false;button.textContent="↻ Buscar actualizaciones";}}
  }
- function start(){ensureUi();watchSettings();setTimeout(()=>runCheck(true),2200);}\n if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
+ function start(){ensureUi();watchSettings();setTimeout(()=>runCheck(true),2200);}
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })();
