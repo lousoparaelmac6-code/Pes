@@ -22,6 +22,12 @@ jobs:
         run: npm install
       - name: Build Windows installer
         run: npm run build:windows
+      - name: Verify custom Windows icon
+        shell: pwsh
+        run: |
+          if (!(Test-Path "assets/generated/pes-icon.ico")) { throw "No se generó el icono ICO de PES." }
+          if (!(Test-Path "dist/pes-icon.png")) { throw "No se copió el icono PNG al paquete de la aplicación." }
+          Write-Host "Iconos de Windows verificados."
       - name: Verify installer
         shell: pwsh
         run: |
