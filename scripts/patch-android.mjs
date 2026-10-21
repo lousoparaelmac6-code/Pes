@@ -50,7 +50,11 @@ const plugin=[
  "        Intent intent = new Intent(Intent.ACTION_VIEW); intent.setDataAndType(uri, \"application/vnd.android.package-archive\");",
  "        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK); getContext().startActivity(intent); call.resolve();",
  "      } catch (Exception e) { call.reject(\"No se pudo preparar la actualización: \" + e.getMessage(), e); }",
- "    }, \"PES-APK-Updater\").start();","  }","}"
+ "    }, \"PES-APK-Updater\").start();","  }",
+ "  private JSObject progressPayload(String stage, long received, long total) {",
+ "    JSObject data = new JSObject(); data.put(\"stage\", stage); data.put(\"received\", received); data.put(\"total\", total);",
+ "    data.put(\"percent\", total > 0 ? Math.min(100.0, (received * 100.0) / total) : -1); return data;",
+ "  }","}"
 ].join("\n");
 await fs.writeFile(path.join(javaDir,"PESUpdaterPlugin.java"),plugin,"utf8");
 const pathsDir=path.join(appDir,"src","main","res","xml");await fs.mkdir(pathsDir,{recursive:true});
