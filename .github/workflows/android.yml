@@ -54,6 +54,10 @@ jobs:
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
           test -s android/app/release.keystore
           node scripts/patch-android.mjs
+          test -s android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          test -s android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          grep -F 'android:icon="@mipmap/ic_launcher"' android/app/src/main/AndroidManifest.xml >/dev/null
+          echo "Icono Android verificado: mipmap y adaptive launcher."
       - name: Build signed APK
         working-directory: android
         run: ./gradlew assembleRelease
