@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import vm from "node:vm";
 import { build } from "esbuild";
 import { patchPesHtml } from "./patch-pes-app.mjs";
 const root=process.cwd();
@@ -7,6 +8,22 @@ const sourceHtml=path.join(root,"GyJ_PES_PLANTELES_V3_CORREGIDO (2) (1).html");
 const sourceJson=path.join(root,"GyJ_PES_Historial_Backup_2026-10-20.json");
 const dist=path.join(root,"dist");
 const version=process.env.PES_VERSION||"1.0.0";
+function validateInlineScripts(html) {
+  let count = 0;
+  for (const match of html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)) {
+    const attrs = match[1] || "";
+    if (/\\bsrc\\s*=/i.test(attrs)) continue;
+    const typeMatch = attrs.match(/\\btype\\s*=\\s*["']?([^"'\\s>]+)/i);
+    const type = (typeMatch && typeMatch[1] || "text/javascript").toLowerCase();
+    if (type === "module" || !/^(?:text|application)\\/(?:java|ecma)script$/.test(type)) continue;
+    const code = (match[2] || "").trim();
+    if (!code) continue;
+    try { new vm.Script(code, { filename: "PES-inline-script-" + (++count) + ".js" }); }
+    catch (error) { throw new Error("Error de sintaxis en JavaScript incrustado (" + count + "): " + error.message); }
+  }
+  return count;
+}
+
 const packagePath=path.join(root,"package.json");
 const packageJson=JSON.parse(await fs.readFile(packagePath,"utf8"));
 packageJson.version=version;
@@ -58,6 +75,9 @@ if (!html.includes('id="pes-responsive-layout"')) {
   else html = responsiveCss + html;
 }
 html+="\n<script>window.PES_APP_VERSION="+JSON.stringify(version)+";</script>\n<script src=\"./pes-updater-bridge.js\"></script>\n<script src=\"./pes-updater.js\"></script>\n";
+const inlineScriptCount=validateInlineScripts(html);
+new vm.Script(await fs.readFile(path.join(root,"scripts","pes-updater.js"),"utf8"), { filename: "scripts/pes-updater.js" });
+console.log("Validated inline JavaScript blocks:",inlineScriptCount);
 await fs.writeFile(path.join(dist,"index.html"),html,"utf8");
 await fs.copyFile(sourceJson,path.join(dist,path.basename(sourceJson)));
 await fs.copyFile(path.join(root,"scripts","pes-updater.js"),path.join(dist,"pes-updater.js"));
