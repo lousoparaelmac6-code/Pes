@@ -10,12 +10,12 @@ const dist=path.join(root,"dist");
 const version=process.env.PES_VERSION||"1.0.0";
 function validateInlineScripts(html) {
   let count = 0;
-  for (const match of html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)) {
+  for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)) {
     const attrs = match[1] || "";
-    if (/\\bsrc\\s*=/i.test(attrs)) continue;
-    const typeMatch = attrs.match(/\\btype\\s*=\\s*["']?([^"'\\s>]+)/i);
+    if (/\bsrc\s*=/i.test(attrs)) continue;
+    const typeMatch = attrs.match(/\btype\s*=\s*["']?([^"'\s>]+)/i);
     const type = (typeMatch && typeMatch[1] || "text/javascript").toLowerCase();
-    if (type === "module" || !/^(?:text|application)\\/(?:java|ecma)script$/.test(type)) continue;
+    if (type === "module" || !/^(?:text|application)\/(?:java|ecma)script$/.test(type)) continue;
     const code = (match[2] || "").trim();
     if (!code) continue;
     try { new vm.Script(code, { filename: "PES-inline-script-" + (++count) + ".js" }); }
