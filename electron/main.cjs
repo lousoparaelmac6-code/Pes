@@ -35,7 +35,7 @@ async function downloadVerified(url,expectedSha,expectedSize=0){
  progress("Preparando instalación…",received,total);return {path:destination,received,total};
 }
 function createWindow(){
- mainWindow=new BrowserWindow({width:1420,height:920,minWidth:900,minHeight:650,backgroundColor:"#0b1020",autoHideMenuBar:true,
+ mainWindow=new BrowserWindow({width:1420,height:920,minWidth:900,minHeight:650,backgroundColor:"#0b1020",autoHideMenuBar:true,icon:path.join(__dirname,"..","dist","pes-icon.png"),
   webPreferences:{preload:path.join(__dirname,"preload.cjs"),contextIsolation:true,nodeIntegration:false,sandbox:true}});
  mainWindow.loadFile(path.join(__dirname,"..","dist","index.html"));
 }
