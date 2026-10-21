@@ -9,7 +9,7 @@ const mainActivity=[
  "public class MainActivity extends BridgeActivity {","  @Override",
  "  public void onCreate(Bundle savedInstanceState) {","    registerPlugin(PESUpdaterPlugin.class);",
  "    super.onCreate(savedInstanceState);","  }",
- "}
+ "}"
 ].join("\n");
 await fs.writeFile(path.join(javaDir,"MainActivity.java"),mainActivity,"utf8");
 const plugin=[
