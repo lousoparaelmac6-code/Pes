@@ -61,7 +61,7 @@ function cloudShouldApplyRemote(updatedAt){return !pendingWrite&&!writeInFlight;
  const readStart=html.indexOf("const readPromise=client.from(SUPA_TABLE)",initReadStart);
  const readErrorBoundary=html.indexOf("if(error)throw error;",readStart);
  if(initReadStart<0||readStart<0||readErrorBoundary<0)throw new Error("PES patch: cloud read request boundaries not found");
- html=html.slice(0,readStart)+"if(cloudInitReadInFlight)return;cloudInitReadInFlight=true;let readResult;try{readResult=await cloudWithTimeout(client.from(SUPA_TABLE).select('id,estado,updated_at').eq('id',SUPA_ID).maybeSingle());}finally{cloudInitReadInFlight=false;}const {data,error}=readResult;\\n "+html.slice(readErrorBoundary);
+ html=html.slice(0,readStart)+"if(cloudInitReadInFlight)return;cloudInitReadInFlight=true;let readResult;try{readResult=await cloudWithTimeout(client.from(SUPA_TABLE).select('id,estado,updated_at').eq('id',SUPA_ID).maybeSingle());}finally{cloudInitReadInFlight=false;}const {data,error}=readResult;\n "+html.slice(readErrorBoundary);
  const initStart=html.indexOf("async function cloudInit");
  const readErrorAt=html.indexOf("No se pudo leer la nube en este momento",initStart);
  const catchStart=html.lastIndexOf("}catch(e){",readErrorAt);
