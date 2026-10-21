@@ -79,6 +79,7 @@ const pathsDir=path.join(appDir,"src","main","res","xml");await fs.mkdir(pathsDi
 await fs.writeFile(path.join(pathsDir,"pes_file_paths.xml"),
  '<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android"><cache-path name="pes_updates" path="."/></paths>\n',"utf8");
 const manifestPath=path.join(appDir,"src","main","AndroidManifest.xml");let manifest=await fs.readFile(manifestPath,"utf8");
+manifest=manifest.replace(/<application\b([^>]*)>/,(_match,attrs)=>{let next=attrs;if(!/\bandroid:icon=/.test(next))next+=' android:icon="@mipmap/ic_launcher"';if(!/\bandroid:roundIcon=/.test(next))next+=' android:roundIcon="@mipmap/ic_launcher_round"';return "<application"+next+">";});
 if(!manifest.includes("android.permission.REQUEST_INSTALL_PACKAGES"))manifest=manifest.replace(/<manifest\b[^>]*>/,m=>m+'\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />');
 if(!manifest.includes(".fileprovider")){
  const provider='\n        <provider android:name="androidx.core.content.FileProvider" android:authorities="com.gyj.pes.fileprovider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/pes_file_paths" /></provider>\n';
