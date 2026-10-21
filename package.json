@@ -17,7 +17,9 @@
     "@capacitor/cli": "7.4.3",
     "electron": "37.2.6",
     "electron-builder": "26.0.12",
-    "esbuild": "0.25.5"
+    "esbuild": "0.25.5",
+    "sharp": "^0.34.3",
+    "png-to-ico": "^2.1.8"
   },
   "build": {
     "appId": "com.gyj.pes.desktop",
@@ -39,7 +41,8 @@
           ]
         }
       ],
-      "artifactName": "PES-Windows-Setup.exe"
+      "artifactName": "PES-Windows-Setup.exe",
+      "icon": "assets/generated/pes-icon.ico"
     },
     "nsis": {
       "oneClick": false,
