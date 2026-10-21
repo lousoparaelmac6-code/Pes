@@ -1,7 +1,9 @@
 export function patchPesHtml(input) {
  let html=input;
  function once(oldText,newText,label){const n=html.split(oldText).length-1;if(n!==1)throw new Error("PES patch "+label+": expected 1 match, found "+n);html=html.replace(oldText,newText);}
- const ls=html.indexOf("function loadState(){"),le=html.indexOf("function restoreAwardHistory(data){
+ const ls=html.indexOf("function loadState(){"),le=html.indexOf("function normalizeData(s){",ls);
+ if(ls<0||le<0)throw new Error("PES patch: loadState boundary not found");
+ const helper=String.raw`function restoreAwardHistory(data){
  if(!data||data.meta?.freshCareer)return false;
  const backup=Array.isArray(ORIGINAL?.awards)?ORIGINAL.awards:[];data.awards=Array.isArray(data.awards)?data.awards:[];let changed=false;
  for(const old of backup){const season=Number(old.season||0);if(!season)continue;let a=data.awards.find(x=>Number(x.season)===season);
@@ -12,9 +14,7 @@ export function patchPesHtml(input) {
  for(const a of data.awards){if(typeof a.ballonDorClub!=='boolean'){a.ballonDorClub=!!a.ballonDor&&playerInClubSeasonData(data,a.ballonDor,a.season);changed=true;}if(typeof a.uefaPlayerClub!=='boolean'){a.uefaPlayerClub=!!a.uefaPlayer&&playerInClubSeasonData(data,a.uefaPlayer,a.season);changed=true;}}
  data.awards=data.awards.filter(a=>a.ballonDor||a.uefaPlayer||a.notes);
  if(changed)window.GYJ_AWARDS_MIGRATED=true;return changed;
-}
-function normalizeData(s){",ls);
- if(ls<0||le<0)throw new Error("PES patch: loadState boundary not found");
+}`;
  const load=String.raw`function loadState(){
  const confirmedKey='gyj_v74_confirmed_remote_snapshot',staleKeys=[KEY,'gyj_v74_pending','gyj_v74_local_backup','gyj_v74_local_revision','gyj_v74_local_mutation_ts'];
  try{const raw=localStorage.getItem(confirmedKey);if(raw){const snap=JSON.parse(raw);if(snap&&snap.state&&Array.isArray(snap.state.matches)&&Array.isArray(snap.state.seasons)&&Array.isArray(snap.state.playerStats)){Object.entries(snap.localStorage||{}).forEach(([k,v])=>{try{localStorage.setItem(k,v)}catch(_){}});staleKeys.forEach(k=>{try{localStorage.removeItem(k)}catch(_){}});const s=clone(snap.state);for(const x of s.playerStats){try{if(/%[0-9A-Fa-f]{2}/.test(String(x.player||'')))x.player=decodeURIComponent(String(x.player));}catch(e){}x.player=String(x.player||'').trim();x.season=Number(x.season||1);}return normalizeData(s);}}}catch(e){try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo leer la última copia confirmada de la nube',e?.message||String(e));}catch(_){}}
@@ -22,6 +22,7 @@ function normalizeData(s){",ls);
  staleKeys.forEach(k=>{try{localStorage.removeItem(k)}catch(_){}});
  return normalizeData(clone(ORIGINAL));
 }
+${helper}
 function normalizeData(s){
 `;
  html=html.slice(0,ls)+load+html.slice(le+"function normalizeData(s){\n".length);
