@@ -57,6 +57,43 @@ jobs:
       - name: Build signed APK
         working-directory: android
         run: ./gradlew assembleRelease
+      - name: Verify APK identity, version and stable signing certificate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          TOOLS_DIR="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          AAPT="$TOOLS_DIR/aapt"
+          APKSIGNER="$TOOLS_DIR/apksigner"
+          BADGING="$("$AAPT" dump badging "$APK")"
+          echo "$BADGING" | grep -F "package: name='com.gyj.pes' versionCode='$PES_VERSION_CODE' versionName='$PES_VERSION'" >/dev/null || {
+            echo "::error::El APK no tiene el package ID, versionCode o versionName esperados."
+            echo "$BADGING" | grep '^package:' || true
+            exit 1
+          }
+          CERT="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest/ {print $2; exit}')"
+          [ -n "$CERT" ] || { echo "::error::No se pudo leer el certificado SHA-256 del APK."; exit 1; }
+          TAGS="$(gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName --jq '.[].tagName' | grep '^apk-v' | sort -V || true)"
+          PREV_TAG="$(printf '%s\n' "$TAGS" | tail -n 1)"
+          if [ -n "$PREV_TAG" ]; then
+            PREV_DIR="$RUNNER_TEMP/pes-previous-apk"
+            mkdir -p "$PREV_DIR"
+            gh release download "$PREV_TAG" --repo "$RELEASE_REPO" --pattern "PES-Android.apk" --dir "$PREV_DIR"
+            PREV_APK="$PREV_DIR/PES-Android.apk"
+            PREV_BADGING="$("$AAPT" dump badging "$PREV_APK")"
+            echo "$PREV_BADGING" | grep -F "package: name='com.gyj.pes'" >/dev/null || {
+              echo "::error::El APK publicado anteriormente usa otro package ID."
+              exit 1
+            }
+            PREV_CODE="$(printf '%s\n' "$PREV_BADGING" | sed -n "s/.*versionCode='\([0-9][0-9]*\)'.*/\1/p" | head -n 1)"
+            PREV_CERT="$("$APKSIGNER" verify --print-certs "$PREV_APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest/ {print $2; exit}')"
+            [ -n "$PREV_CODE" ] && [ -n "$PREV_CERT" ] || { echo "::error::No se pudo verificar la versión o firma del APK anterior."; exit 1; }
+            [ "$PES_VERSION_CODE" -gt "$PREV_CODE" ] || { echo "::error::El versionCode no aumentó respecto de $PREV_TAG."; exit 1; }
+            [ "$CERT" = "$PREV_CERT" ] || { echo "::error::El certificado cambió respecto de $PREV_TAG; Android podría rechazar la actualización sobre la instalación existente."; exit 1; }
+          fi
+          echo "APK verificado: package=com.gyj.pes versionCode=$PES_VERSION_CODE versionName=$PES_VERSION certificateSHA256=$CERT previousTag=${PREV_TAG:-ninguno}"
       - name: Verify APK output
         shell: bash
         run: |
