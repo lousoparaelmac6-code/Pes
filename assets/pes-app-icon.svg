@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#122c26"/><stop offset="1" stop-color="#071b17"/></linearGradient>
+ <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dce8e2"/></linearGradient>
+ <clipPath id="shield"><path d="M512 112 800 218v245c0 197-119 335-288 430C343 798 224 660 224 463V218Z"/></clipPath>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="20" stdDeviation="20" flood-color="#000" flood-opacity=".32"/></filter>
+</defs>
+<rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+<circle cx="512" cy="480" r="355" fill="none" stroke="#8bb8a4" stroke-opacity=".15" stroke-width="3"/>
+<g filter="url(#shadow)">
+ <path d="M512 112 800 218v245c0 197-119 335-288 430C343 798 224 660 224 463V218Z" fill="#f4f7f4" stroke="#d0e2d8" stroke-width="18" stroke-linejoin="round"/>
+ <g clip-path="url(#shield)">
+  <rect x="224" y="120" width="576" height="820" fill="#f7faf8"/>
+  <path d="M205 155h200v820H205Z" fill="#126846"/>
+  <path d="M418 155h188v820H418Z" fill="#f7faf8"/>
+  <path d="M622 155h210v820H622Z" fill="#126846"/>
+  <path d="M180 630 355 448 452 532 583 344 839 630v340H180Z" fill="#0c3b2d"/>
+  <path d="m280 548 75-100 97 84 131-188 90 106 78 68-76-30-92-83-132 180-97-83Z" fill="#d8eee1" opacity=".96"/>
+  <path d="M180 657Q512 600 844 657v310H180Z" fill="#0c5b3d" opacity=".88"/>
+ </g>
+ <path d="M512 112 800 218v245c0 197-119 335-288 430C343 798 224 660 224 463V218Z" fill="none" stroke="#f7faf8" stroke-width="15" stroke-linejoin="round"/>
+ <g transform="translate(512 450)">
+  <circle r="155" fill="#f7faf8" stroke="#d7e5dd" stroke-width="12"/>
+  <g fill="#102b22" stroke="#102b22" stroke-linejoin="round">
+   <path d="m0-64 61-20 38 50-23 61H-23l-23-61Z"/>
+   <path d="m-112-90 45-31 37 24-9 39-40 13Z"/>
+   <path d="m112-90-45-31-37 24 9 39 40 13Z"/>
+   <path d="m-104 74 28-39 37 18 7 48-39 26Z"/>
+   <path d="m104 74-28-39-37 18-7 48 39 26Z"/>
+   <path d="M-23-61 0-92 23-61 0-43Z" fill="#f7faf8" stroke="none"/>
+   <path d="M-23 27h46l23 40-23 35h-46l-23-35Z"/>
+   <path d="m-68-31-37 18 5 42 36-2 18-37Z"/>
+   <path d="m68-31 37 18-5 42-36-2-18-37Z"/>
+  </g>
+  <g fill="none" stroke="#102b22" stroke-width="10" stroke-linecap="round">
+   <path d="M0-43v-21M-23 27l-24-20M23 27l24-20M-76-35l-18-18M76-35l18-18M-23 102l-9 28M23 102l9 28"/>
+  </g>
+ </g>
+ <path d="M375 751h274" stroke="#f7faf8" stroke-width="12" stroke-linecap="round" opacity=".9"/>
+ <path d="M418 779h188" stroke="#f7faf8" stroke-width="7" stroke-linecap="round" opacity=".65"/>
+</g>
+</svg>
