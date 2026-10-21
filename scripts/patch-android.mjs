@@ -9,10 +9,7 @@ const mainActivity=[
  "public class MainActivity extends BridgeActivity {","  @Override",
  "  public void onCreate(Bundle savedInstanceState) {","    registerPlugin(PESUpdaterPlugin.class);",
  "    super.onCreate(savedInstanceState);","  }",
- "  private JSObject progressPayload(String stage, long received, long total) {",
- "    JSObject data = new JSObject(); data.put(\"stage\", stage); data.put(\"received\", received); data.put(\"total\", total);",
- "    data.put(\"percent\", total > 0 ? Math.min(100.0, (received * 100.0) / total) : -1); return data;",
- "  }","}"
+ "}
 ].join("\n");
 await fs.writeFile(path.join(javaDir,"MainActivity.java"),mainActivity,"utf8");
 const plugin=[
