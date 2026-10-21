@@ -75,10 +75,17 @@ function cloudShouldApplyRemote(updatedAt){return !pendingWrite&&!writeInFlight;
       "else{ensureCanonicalActivePlayers();normalizePlayersClean();remoteBaseSnapshot=appSnapshot();}","initial baseline");
  once("applySnapshot(snap);normalizePlayersClean();try{localStorage.setItem(CLOUD_REMOTE_KEY,updatedAt);}catch(_){}cloudRenderAfterRemote();",
       "applySnapshot(snap);normalizePlayersClean();cloudStoreConfirmed(snap,updatedAt);try{localStorage.setItem(CLOUD_REMOTE_KEY,updatedAt);}catch(_){}cloudRenderAfterRemote();","realtime remote");
- once("realtimeRetryTimer=setTimeout(()=>{realtimeRetryTimer=null;startRealtime();},realtimeRetryMs);\n   realtimeRetryMs=Math.min(realtimeRetryMs*2,60000);",
-      "realtimeRetryTimer=setTimeout(()=>{realtimeRetryTimer=null;startRealtime();},0);\n   realtimeRetryMs=0;","realtime retry");
+ const rtStart=html.indexOf("realtimeRetryTimer=setTimeout(()=>{realtimeRetryTimer=null;startRealtime();},realtimeRetryMs);");
+ const rtEnd=html.indexOf("realtimeRetryMs=Math.min(realtimeRetryMs*2,60000);",rtStart);
+ if(rtStart<0||rtEnd<0)throw new Error("PES patch: realtime retry boundaries not found");
+ html=html.slice(0,rtStart)+"realtimeRetryTimer=setTimeout(()=>{realtimeRetryTimer=null;startRealtime();},0);\\n   realtimeRetryMs=0;"+html.slice(rtEnd+"realtimeRetryMs=Math.min(realtimeRetryMs*2,60000);".length);
 
- once("startRealtime();\n if(pendingWrite)cloudFlush();","startRealtime();\n if(window.GYJ_AWARDS_MIGRATED){window.GYJ_AWARDS_MIGRATED=false;cloudQueueLocalSave();}\n if(pendingWrite)cloudFlush();","sync award migration");
+
+ const initForMigration=html.indexOf("async function cloudInit");
+ const initEndForMigration=html.indexOf("function dataExists()",initForMigration);
+ const migrationQueueAt=html.lastIndexOf("if(pendingWrite)cloudFlush();",initEndForMigration);
+ if(initForMigration<0||initEndForMigration<0||migrationQueueAt<0)throw new Error("PES patch: award migration queue boundary not found");
+ html=html.slice(0,migrationQueueAt)+"if(window.GYJ_AWARDS_MIGRATED){window.GYJ_AWARDS_MIGRATED=false;cloudQueueLocalSave();}\\n "+html.slice(migrationQueueAt);
  const navStart=html.indexOf("function renderNav(active){"),navEnd=html.indexOf("function go(id){",navStart);
  if(navStart<0||navEnd<0)throw new Error("PES patch: nav boundaries not found");
  const nav="function renderNav(active){\n const oldMenu=document.getElementById('mobileNavMoreMenu');if(oldMenu)oldMenu.remove();\n const primary=new Set(['dashboard','calendar','players','palmares']);const nav=document.getElementById('nav');\n if(nav)nav.innerHTML=navItems.map(([id,t])=>'<button data-nav-id=\"'+esc(id)+'\" class=\"'+(id===active?'active':'')+'\" onclick=\"go(\\''+esc(id)+'\\')\">'+esc(t)+'</button>').join('')+'<button type=\"button\" class=\"mobile-nav-more '+(!primary.has(active)?'active':'')+'\" onclick=\"toggleMobileMore()\">Más ☰</button>';\n const info=document.getElementById('sideInfo');if(info)info.textContent=state.matches.length+' partidos · '+state.seasons.length+' temporadas';\n}\nfunction toggleMobileMore(){const old=document.getElementById('mobileNavMoreMenu');if(old){old.remove();return;}const primary=new Set(['dashboard','calendar','players','palmares']);const menu=document.createElement('div');menu.id='mobileNavMoreMenu';menu.className='mobile-nav-more-menu';menu.innerHTML=navItems.filter(([id])=>!primary.has(id)).map(([id,t])=>'<button onclick=\"go(\\''+esc(id)+'\\')\">'+esc(t)+'</button>').join('');document.body.appendChild(menu);}\n";
