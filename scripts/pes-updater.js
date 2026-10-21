@@ -14,11 +14,21 @@
   }return null;
  }
  function ensureUi(){
-  if(document.getElementById("pes-update-launcher"))return;
-  const style=document.createElement("style");
-  style.textContent="#pes-update-launcher{position:fixed;right:14px;top:14px;z-index:2147483000;border:1px solid #3b5279;border-radius:999px;background:#16223a;color:#eef3ff;padding:9px 13px;font:600 12px Segoe UI,Arial,sans-serif;box-shadow:0 6px 24px #0005}#pes-update-launcher:disabled{opacity:.7}#pes-update-toast{position:fixed;right:14px;top:58px;z-index:2147483000;max-width:min(420px,calc(100vw - 28px));padding:13px 15px;border:1px solid #3b5279;border-radius:12px;background:#101a30;color:#eef3ff;font:13px/1.45 Segoe UI,Arial,sans-serif;box-shadow:0 10px 30px #0008;white-space:pre-wrap}#pes-update-toast button{margin:8px 6px 0 0;border:1px solid #3b5279;border-radius:8px;background:#1d3152;color:#fff;padding:7px 10px}";
-  document.head.appendChild(style);const button=document.createElement("button");button.id="pes-update-launcher";button.type="button";button.textContent="↻ Buscar actualizaciones";button.addEventListener("click",()=>runCheck(false));document.body.appendChild(button);
+  if(!document.getElementById("pes-update-launcher")){
+   const style=document.createElement("style");
+   style.textContent="#pes-update-launcher{position:fixed;right:12px;top:12px;z-index:2147483000;border:1px solid #3b5279;border-radius:999px;background:#16223a;color:#eef3ff;padding:9px 12px;font:600 12px Segoe UI,Arial,sans-serif;box-shadow:0 6px 24px #0005}#pes-update-launcher:disabled{opacity:.7}#pes-update-toast{position:fixed;right:12px;top:58px;z-index:2147483000;max-width:min(420px,calc(100vw - 24px));padding:13px 15px;border:1px solid #3b5279;border-radius:12px;background:#101a30;color:#eef3ff;font:13px/1.45 Segoe UI,Arial,sans-serif;box-shadow:0 10px 30px #0008;white-space:pre-wrap}#pes-update-toast button{margin:8px 6px 0 0;border:1px solid #3b5279;border-radius:8px;background:#1d3152;color:#fff;padding:8px 10px;min-height:40px}#pes-update-settings{margin-top:12px;padding:14px;border:1px solid #344251;border-radius:14px;background:#111923;color:#e8edf1}#pes-update-settings h3{margin:0 0 6px;font-size:16px}#pes-update-settings p{margin:0 0 10px;color:#aab5c0;font-size:13px;line-height:1.45}#pes-update-settings button{min-height:44px;padding:9px 12px;border-radius:10px;border:1px solid #3b5279;background:#1d3152;color:#fff}";
+   document.head.appendChild(style);
+   const button=document.createElement("button");button.id="pes-update-launcher";button.type="button";button.textContent="↻ Actualizaciones";button.addEventListener("click",()=>runCheck(false));document.body.appendChild(button);
+  }
+  ensureSettingsPanel();
  }
+ function ensureSettingsPanel(){
+  const config=document.getElementById("config");if(!config||document.getElementById("pes-update-settings"))return;
+  const panel=document.createElement("div");panel.id="pes-update-settings";
+  panel.innerHTML="<h3>Actualizaciones de PES</h3><p>Al abrir la aplicación se comprueba automáticamente si hay una versión más reciente. También podés comprobarla ahora e instalarla sin desinstalar PES.</p><button type=\"button\" id=\"pes-update-settings-check\">Buscar actualizaciones</button>";
+  config.appendChild(panel);panel.querySelector("#pes-update-settings-check").addEventListener("click",()=>runCheck(false));
+ }
+ function watchSettings(){const config=document.getElementById("config");if(config&&window.MutationObserver)new MutationObserver(()=>ensureSettingsPanel()).observe(config,{childList:true});}
  function show(message,actions){
   let box=document.getElementById("pes-update-toast");if(box)box.remove();box=document.createElement("div");box.id="pes-update-toast";
   const text=document.createElement("div");text.textContent=message;box.appendChild(text);
@@ -35,7 +45,8 @@
    const available=typeof latest.available==="boolean"?latest.available:compare(version,installed)>0;
    if(!available){if(!silent)show("PES está actualizado.\nVersión instalada: "+installed);return;}
    show("Hay una versión nueva de PES para "+(isAndroid?"Android":"Windows")+".\nInstalada: "+installed+"\nDisponible: "+version+"\n\nSe conservarán los datos. No desinstales la aplicación.",[{
-    label:"Descargar e instalar",run:async()=>{
+    label:"Ir a Configuración",run:async()=>{if(typeof window.go==="function")window.go("config");ensureSettingsPanel();}},
+    {label:"Descargar e instalar",run:async()=>{
      if(isAndroid){const plugin=window.PESNativeUpdater;
       if(!plugin||typeof plugin.installApk!=="function")throw new Error("No está disponible el instalador nativo; hace falta una compilación Android actualizada.");
       await plugin.installApk({url:latest.url,sha256:latest.sha256});show("Descarga preparada. Seguí las indicaciones del instalador de Android para actualizar PES.");
@@ -44,5 +55,5 @@
   }catch(e){if(!silent)show("No se pudo comprobar o descargar la actualización.\n"+String(e.message||e)+"\n\nPodés seguir usando esta versión e intentar nuevamente.");else console.warn("PES update check failed:",e);}
   finally{if(button){button.disabled=false;button.textContent="↻ Buscar actualizaciones";}}
  }
- function start(){ensureUi();setTimeout(()=>runCheck(true),2200);}\n if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
+ function start(){ensureUi();watchSettings();setTimeout(()=>runCheck(true),2200);}\n if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })();
