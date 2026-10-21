@@ -73,7 +73,12 @@ jobs:
             echo "$BADGING" | grep '^package:' || true
             exit 1
           }
-          CERT="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest/ {print $2; exit}')"
+          apk_cert() {
+            local output
+            output="$("$APKSIGNER" verify --print-certs "$1" 2>&1)" || { printf '%s\n' "$output"; return 1; }
+            printf '%s\n' "$output" | grep -i 'SHA-256 digest' | head -n 1 | sed -E 's/.*[Ss][Hh][Aa]-256 digest:[[:space:]]*//' | tr -d ':' | tr '[:upper:]' '[:lower:]'
+          }
+          CERT="$(apk_cert "$APK")"
           [ -n "$CERT" ] || { echo "::error::No se pudo leer el certificado SHA-256 del APK."; exit 1; }
           TAGS="$(gh release list --repo "$RELEASE_REPO" --limit 100 --json tagName --jq '.[].tagName' | grep '^apk-v' | sort -V || true)"
           PREV_TAG="$(printf '%s\n' "$TAGS" | tail -n 1)"
@@ -88,7 +93,7 @@ jobs:
               exit 1
             }
             PREV_CODE="$(printf '%s\n' "$PREV_BADGING" | sed -n "s/.*versionCode='\([0-9][0-9]*\)'.*/\1/p" | head -n 1)"
-            PREV_CERT="$("$APKSIGNER" verify --print-certs "$PREV_APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest/ {print $2; exit}')"
+            PREV_CERT="$(apk_cert "$PREV_APK")"
             [ -n "$PREV_CODE" ] && [ -n "$PREV_CERT" ] || { echo "::error::No se pudo verificar la versión o firma del APK anterior."; exit 1; }
             [ "$PES_VERSION_CODE" -gt "$PREV_CODE" ] || { echo "::error::El versionCode no aumentó respecto de $PREV_TAG."; exit 1; }
             [ "$CERT" = "$PREV_CERT" ] || { echo "::error::El certificado cambió respecto de $PREV_TAG; Android podría rechazar la actualización sobre la instalación existente."; exit 1; }
