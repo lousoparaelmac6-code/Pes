@@ -49,9 +49,11 @@ function cloudShouldApplyRemote(updatedAt){return !pendingWrite&&!writeInFlight;
  once("try{client=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){window.GYJ_CLOUD_ERROR=String(e?.message||e);initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo crear el cliente Supabase',window.GYJ_CLOUD_ERROR);}catch(_){}return;}",
        "try{client=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){window.GYJ_CLOUD_ERROR=String(e?.message||e);initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo crear el cliente Supabase',window.GYJ_CLOUD_ERROR);}catch(_){}cloudScheduleInitRetry();return;}","client retry");
  once("if(data?.estado?.state&&cloudShouldApplyRemote(data.updated_at)){applySnapshot(data.estado);normalizePlayersClean();remoteLoaded=true;try{localStorage.setItem(CLOUD_REMOTE_KEY,data.updated_at||'');}catch(_){} }",
-      "if(data?.estado?.state&&cloudShouldApplyRemote(data.updated_at)){applySnapshot(data.estado);normalizePlayersClean();remoteLoaded=true;cloudStoreConfirmed(data.estado,data.updated_at||'');try{localStorage.setItem(CLOUD_REMOTE_KEY,data.updated_at||'');}catch(_){} }","confirmed remote");
+      "if(data?.estado?.state){const snap=data.estado;if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'');}","confirmed remote");
  once("if(cloudShouldApplyRemote(data.updated_at)){applySnapshot({state:data.estado,localStorage:{}});normalizePlayersClean();remoteLoaded=true;}",
-      "if(cloudShouldApplyRemote(data.updated_at)){const snap={state:data.estado,localStorage:{}};applySnapshot(snap);normalizePlayersClean();remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'');}","legacy remote");
+      "const snap={state:data.estado,localStorage:{}};if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'');","legacy remote");
+ once("else{ensureCanonicalActivePlayers();normalizePlayersClean();}",
+      "else{ensureCanonicalActivePlayers();normalizePlayersClean();remoteBaseSnapshot=appSnapshot();}","initial baseline");
  once("applySnapshot(snap);normalizePlayersClean();try{localStorage.setItem(CLOUD_REMOTE_KEY,updatedAt);}catch(_){}cloudRenderAfterRemote();",
       "applySnapshot(snap);normalizePlayersClean();cloudStoreConfirmed(snap,updatedAt);try{localStorage.setItem(CLOUD_REMOTE_KEY,updatedAt);}catch(_){}cloudRenderAfterRemote();","realtime remote");
  once("realtimeRetryTimer=setTimeout(()=>{realtimeRetryTimer=null;startRealtime();},realtimeRetryMs);\n   realtimeRetryMs=Math.min(realtimeRetryMs*2,60000);",
