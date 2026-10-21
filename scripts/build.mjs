@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { build } from "esbuild";
+import { patchPesHtml } from "./patch-pes-app.mjs";
 const root=process.cwd();
 const sourceHtml=path.join(root,"GyJ_PES_PLANTELES_V3_CORREGIDO (2) (1).html");
 const sourceJson=path.join(root,"GyJ_PES_Historial_Backup_2026-10-20.json");
@@ -13,6 +14,7 @@ await fs.writeFile(packagePath,JSON.stringify(packageJson,null,2)+"\n","utf8");
 await fs.access(sourceHtml); await fs.access(sourceJson);
 await fs.rm(dist,{recursive:true,force:true}); await fs.mkdir(dist,{recursive:true});
 let html=await fs.readFile(sourceHtml,"utf8");
+html=patchPesHtml(html);
 const cdnTag=/<script\s+id=["']gyj-supabase-sdk["']\s+src=["']https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2["']><\/script>/i;
 if(!cdnTag.test(html)) throw new Error("No se encontró el script Supabase esperado; se detiene el build.");
 html=html.replace(cdnTag,'<script id="gyj-supabase-sdk" src="./supabase.bundle.js"></script>');
@@ -46,6 +48,8 @@ const responsiveCss = [
 '[style*="width: 1000"],[style*="width:1000"]{max-width:100%!important}',
 '}',
 '@media(max-width:420px){body{font-size:15px}h1{font-size:clamp(1.25rem,6vw,1.8rem)}h2{font-size:clamp(1.1rem,5vw,1.5rem)}}',
+'@media(min-width:721px){.app{width:100%;min-width:0}.main{flex:1 1 0%;min-width:0;width:auto;max-width:none;overflow-x:hidden}.section,.panel,.toolbar,.grid2,.grid3,.cards{min-width:0;max-width:100%}}',
+'@media(max-width:720px){.nav{max-height:66px!important;flex-wrap:nowrap!important}.nav button[data-nav-id]:not([data-nav-id="dashboard"]):not([data-nav-id="calendar"]):not([data-nav-id="seasons"]):not([data-nav-id="players"]):not([data-nav-id="palmares"]){display:none!important}.nav button[data-nav-id]{flex:1 0 0!important;min-width:0!important;max-width:20%!important;white-space:normal!important;overflow-wrap:anywhere!important}.nav button.mobile-nav-more{display:block!important;min-width:56px!important;max-width:64px!important}#awardEditTable .table{min-width:0!important;width:100%!important;display:block!important}#awardEditTable .table thead{display:none!important}#awardEditTable .table tbody{display:grid!important;gap:9px!important}#awardEditTable .table tr{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:4px 8px!important;padding:8px!important;border:1px solid var(--line)!important;border-radius:12px!important}#awardEditTable .table td{white-space:normal!important;overflow-wrap:anywhere!important;padding:6px 4px!important}#awardEditTable .table td:first-child,#awardEditTable .table td:last-child{grid-column:1/-1!important;position:static!important;box-shadow:none!important}}',
 '</style>'
 ].join('\n');
 if (!/<meta\s+name=["']viewport["']/i.test(html)) throw new Error("No se pudo configurar el viewport móvil.");
