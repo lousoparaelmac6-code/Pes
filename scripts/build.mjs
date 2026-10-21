@@ -4,6 +4,7 @@ import vm from "node:vm";
 import { build } from "esbuild";
 import { patchPesHtml } from "./patch-pes-app.mjs";
 const root=process.cwd();
+await import('./generate-icons.mjs');
 const sourceHtml=path.join(root,"GyJ_PES_PLANTELES_V3_CORREGIDO (2) (1).html");
 const sourceJson=path.join(root,"GyJ_PES_Historial_Backup_2026-10-20.json");
 const dist=path.join(root,"dist");
