@@ -1,7 +1,19 @@
 export function patchPesHtml(input) {
  let html=input;
  function once(oldText,newText,label){const n=html.split(oldText).length-1;if(n!==1)throw new Error("PES patch "+label+": expected 1 match, found "+n);html=html.replace(oldText,newText);}
- const ls=html.indexOf("function loadState(){"),le=html.indexOf("function normalizeData(s){",ls);
+ const ls=html.indexOf("function loadState(){"),le=html.indexOf("function restoreAwardHistory(data){
+ if(!data||data.meta?.freshCareer)return false;
+ const backup=Array.isArray(ORIGINAL?.awards)?ORIGINAL.awards:[];data.awards=Array.isArray(data.awards)?data.awards:[];let changed=false;
+ for(const old of backup){const season=Number(old.season||0);if(!season)continue;let a=data.awards.find(x=>Number(x.season)===season);
+  if(!a){a={season:season,seasonLabel:old.seasonLabel||seasonLabelFrom(data,season),ballonDor:null,uefaPlayer:null,notes:old.notes||null};data.awards.push(a);changed=true;}
+  if(!a.ballonDor&&typeof a.ballonDorClub!=='boolean'&&old.ballonDor){a.ballonDor=String(old.ballonDor).trim();changed=true;}
+  if(!a.uefaPlayer&&typeof a.uefaPlayerClub!=='boolean'&&old.uefaPlayer){a.uefaPlayer=String(old.uefaPlayer).trim();changed=true;}
+ }
+ for(const a of data.awards){if(typeof a.ballonDorClub!=='boolean'){a.ballonDorClub=!!a.ballonDor&&playerInClubSeasonData(data,a.ballonDor,a.season);changed=true;}if(typeof a.uefaPlayerClub!=='boolean'){a.uefaPlayerClub=!!a.uefaPlayer&&playerInClubSeasonData(data,a.uefaPlayer,a.season);changed=true;}}
+ data.awards=data.awards.filter(a=>a.ballonDor||a.uefaPlayer||a.notes);
+ if(changed)window.GYJ_AWARDS_MIGRATED=true;return changed;
+}
+function normalizeData(s){",ls);
  if(ls<0||le<0)throw new Error("PES patch: loadState boundary not found");
  const load=String.raw`function loadState(){
  const confirmedKey='gyj_v74_confirmed_remote_snapshot',staleKeys=[KEY,'gyj_v74_pending','gyj_v74_local_backup','gyj_v74_local_revision','gyj_v74_local_mutation_ts'];
@@ -13,6 +25,7 @@ export function patchPesHtml(input) {
 function normalizeData(s){
 `;
  html=html.slice(0,ls)+load+html.slice(le+"function normalizeData(s){\n".length);
+ once("s.awards=s.awards.map(a=>{if(a.ballonDor&&!playerInClubSeasonData(s,a.ballonDor,a.season))a.ballonDor=null;if(a.uefaPlayer&&!playerInClubSeasonData(s,a.uefaPlayer,a.season))a.uefaPlayer=null;return a}).filter(a=>a.ballonDor||a.uefaPlayer);","restoreAwardHistory(s);","preserve external award winners");
  const ds=html.indexOf("const CLOUD_LOCAL_KEY"),de=html.indexOf("function cloudLocalBackup",ds);
  if(ds<0||de<0)throw new Error("PES patch: cloud declaration not found");
  const decl="const CLOUD_LOCAL_KEY='gyj_v74_local_backup',CLOUD_PENDING_KEY='gyj_v74_pending',CLOUD_REV_KEY='gyj_v74_local_revision',CLOUD_LOCAL_TS_KEY='gyj_v74_local_mutation_ts',CLOUD_REMOTE_KEY='gyj_v74_remote_updated',CLOUD_CONFIRMED_KEY='gyj_v74_confirmed_remote_snapshot';\nlet client=null,channel=null,writeTimer=null,writeInFlight=false,pendingWrite=null,pendingRevision=0,localRevision=0,initializing=true,retryTimer=null,retryMs=0,realtimeRetryTimer=null,realtimeRetryMs=0,realtimeStarting=false,realtimeGeneration=0,lastRealtimeWarn='',remoteBaseSnapshot=(function(){try{return JSON.parse(localStorage.getItem(CLOUD_CONFIRMED_KEY)||'null')||appSnapshot()}catch(_){return appSnapshot()}})(),onlineListenerInstalled=false,initRetryScheduled=false;\n";
@@ -52,10 +65,11 @@ function cloudShouldApplyRemote(updatedAt){return !pendingWrite&&!writeInFlight;
        "if(!window.supabase?.createClient){window.GYJ_CLOUD_ERROR='SDK Supabase no disponible';initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','Supabase no está disponible','La aplicación continúa con respaldo local.');}catch(_){}cloudScheduleInitRetry();return;}","SDK retry");
  once("try{client=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){window.GYJ_CLOUD_ERROR=String(e?.message||e);initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo crear el cliente Supabase',window.GYJ_CLOUD_ERROR);}catch(_){}return;}",
        "try{client=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){window.GYJ_CLOUD_ERROR=String(e?.message||e);initializing=false;cloudOpen();try{window.GYJ_DIAG?.report?.('ERROR CLOUD','No se pudo crear el cliente Supabase',window.GYJ_CLOUD_ERROR);}catch(_){}cloudScheduleInitRetry();return;}","client retry");
+ once("function applySnapshot(snap){if(!snap||!snap.state)return false;window.GYJ_APPLYING_REMOTE=true;try{state=snap.state;Object.entries(snap.localStorage||{}).forEach(([k,v])=>localStorage.setItem(k,v));localStorage.setItem('gyj_pes_html_v3_ESTADISTICAS_XLSX_EXACTAS',JSON.stringify(state));}finally{window.GYJ_APPLYING_REMOTE=false;}return true;}","function applySnapshot(snap){if(!snap||!snap.state)return false;window.GYJ_APPLYING_REMOTE=true;try{state=snap.state;restoreAwardHistory(state);snap.state=state;Object.entries(snap.localStorage||{}).forEach(([k,v])=>localStorage.setItem(k,v));localStorage.setItem('gyj_pes_html_v3_ESTADISTICAS_XLSX_EXACTAS',JSON.stringify(state));}finally{window.GYJ_APPLYING_REMOTE=false;}return true;}","restore award history on remote apply");
  once("if(data?.estado?.state&&cloudShouldApplyRemote(data.updated_at)){applySnapshot(data.estado);normalizePlayersClean();remoteLoaded=true;try{localStorage.setItem(CLOUD_REMOTE_KEY,data.updated_at||'');}catch(_){} }",
-      "if(data?.estado?.state){const snap=data.estado;if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'',!!pendingWrite);}","confirmed remote");
+      "if(data?.estado?.state){const snap=data.estado;if(!pendingWrite)remoteBaseSnapshot=cloudCopy(snap);if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'',!!pendingWrite||!!window.GYJ_AWARDS_MIGRATED);}","confirmed remote");
  once("if(cloudShouldApplyRemote(data.updated_at)){applySnapshot({state:data.estado,localStorage:{}});normalizePlayersClean();remoteLoaded=true;}",
-      "const snap={state:data.estado,localStorage:{}};if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'',!!pendingWrite);","legacy remote");
+      "const snap={state:data.estado,localStorage:{}};if(!pendingWrite)remoteBaseSnapshot=cloudCopy(snap);if(cloudShouldApplyRemote(data.updated_at)){applySnapshot(snap);normalizePlayersClean();}remoteLoaded=true;cloudStoreConfirmed(snap,data.updated_at||'',!!pendingWrite||!!window.GYJ_AWARDS_MIGRATED);","legacy remote");
  once("else{ensureCanonicalActivePlayers();normalizePlayersClean();}",
       "else{ensureCanonicalActivePlayers();normalizePlayersClean();remoteBaseSnapshot=appSnapshot();}","initial baseline");
  once("applySnapshot(snap);normalizePlayersClean();try{localStorage.setItem(CLOUD_REMOTE_KEY,updatedAt);}catch(_){}cloudRenderAfterRemote();",
