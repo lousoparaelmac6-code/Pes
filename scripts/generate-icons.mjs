@@ -13,7 +13,8 @@ const icoSizes=[16,24,32,48,64,128,256];
 const icoBuffers=await Promise.all(icoSizes.map(size=>sharp(svg,{density:192}).resize(size,size,{fit:"contain"}).png().toBuffer()));
 await fs.writeFile(path.join(generated,"pes-icon.ico"),await pngToIco(icoBuffers));
 const appDir=path.join(root,"android","app");
-try { await fs.access(appDir); } catch { console.log("Android aún no está creado; se generaron los iconos base para Windows."); process.exit(0); }
+let androidReady=true;try { await fs.access(appDir); } catch { androidReady=false; }
+if(androidReady){
 const res=path.join(appDir,"src","main","res");
 const sizes={mdpi:48,hdpi:72,xhdpi:96,xxhdpi:144,xxxhdpi:192};
 for(const [density,size] of Object.entries(sizes)){
@@ -30,3 +31,5 @@ const values=path.join(res,"values");await fs.mkdir(values,{recursive:true});
 const colorsPath=path.join(values,"pes-icon-colors.xml");
 await fs.writeFile(colorsPath,'<?xml version="1.0" encoding="utf-8"?>\n<resources><color name="pes_icon_background">#0B211A</color></resources>\n');
 console.log("Iconos PES generados: PNG 1024, Windows ICO multirresolución y Android mipmaps/adaptive icon.");
+
+}
