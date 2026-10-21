@@ -46,6 +46,12 @@ if (/<meta\s+name=["']viewport["']/i.test(html)) {
 const responsiveCss = [
 '<style id="pes-responsive-layout">',
 '*,*::before,*::after{box-sizing:border-box}',
+// Keep modal dialogs above the fixed mobile navigation and make their form actions reachable.
+'#modal,#modalOverlay,#modalBackdrop,#modalWrap,#modalContainer,.modal,.modal-overlay,.modal-backdrop,[role="dialog"],dialog{z-index:2147483500!important}',
+'#modalBox{box-sizing:border-box;max-height:calc(100dvh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}',
+'#modalBox .actions,#modal .actions,#modalOverlay .actions,#modalWrap .actions,.modal .actions,.modal-overlay .actions,[role="dialog"] .actions{position:sticky;bottom:0;z-index:3;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:12px 0 calc(10px + env(safe-area-inset-bottom,0px));background:var(--panel,#111923);border-top:1px solid var(--line,#344251)}',
+'#modalBox .actions button,#modal .actions button,#modalOverlay .actions button,#modalWrap .actions button,.modal .actions button,.modal-overlay .actions button,[role="dialog"] .actions button{flex:0 1 auto;min-width:96px;max-width:100%;white-space:normal;overflow-wrap:anywhere}',
+'#modalBox input,#modalBox select,#modalBox textarea{min-width:0;max-width:100%}',
 'html{width:100%;min-width:0;min-height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}',
 'body{width:100%;min-width:0;max-width:100%;min-height:100dvh;margin:0;overflow-x:hidden}',
 'img,svg,video,canvas,iframe{max-width:100%;height:auto}',
