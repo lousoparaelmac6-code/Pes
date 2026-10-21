@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 const root=path.resolve("android"),appDir=path.join(root,"app");
 const version=process.env.PES_VERSION||"1.0.0",versionCode=Number(process.env.PES_VERSION_CODE||1);
+await import("./generate-icons.mjs");
 const javaDir=path.join(appDir,"src","main","java","com","gyj","pes");
 await fs.mkdir(javaDir,{recursive:true});
 const mainActivity=[
